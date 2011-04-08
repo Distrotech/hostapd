@@ -1226,6 +1226,7 @@ void wpa_supplicant_cancel_scan(struct wpa_supplicant *wpa_s)
 	wpa_dbg(wpa_s, MSG_DEBUG, "Cancelling scan request");
 	eloop_cancel_timeout(wpa_supplicant_scan, wpa_s, NULL);
 	wpas_p2p_continue_after_scan(wpa_s);
+	wpa_supplicant_notify_scanning(wpa_s, 0);
 }
 
 
