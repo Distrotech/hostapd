@@ -2324,6 +2324,27 @@ static int wpa_cli_cmd_flush(struct wpa_ctrl *ctrl, int argc, char *argv[])
 }
 
 
+static int wpa_cli_cmd_driver(struct wpa_ctrl *ctrl, int argc, char *argv[])
+{
+	char cmd[256];
+	int i;
+	int len;
+
+	if (argc < 1) {
+		printf("Invalid DRIVER command: needs one argument (cmd)\n");
+		return -1;
+	}
+
+	len = os_snprintf(cmd, sizeof(cmd), "DRIVER %s", argv[0]);
+	for (i = 1; i < argc; i++)
+		len += os_snprintf(cmd + len, sizeof(cmd) - len, " %s",
+				   argv[i]);
+	cmd[sizeof(cmd) - 1] = '\0';
+	printf("%s: %s\n", __func__, cmd);
+	return wpa_ctrl_command(ctrl, cmd);
+}
+
+
 enum wpa_cli_cmd_flags {
 	cli_cmd_flag_none		= 0x00,
 	cli_cmd_flag_sensitive		= 0x01
@@ -2775,6 +2796,9 @@ static struct wpa_cli_cmd wpa_cli_commands[] = {
 	  "<params..> = Sent unprocessed command" },
 	{ "flush", wpa_cli_cmd_flush, NULL, cli_cmd_flag_none,
 	  "= flush wpa_supplicant state" },
+	{ "driver", wpa_cli_cmd_driver, NULL,
+	  cli_cmd_flag_none,
+	  "<command> = driver private commands" },
 	{ NULL, NULL, NULL, cli_cmd_flag_none, NULL }
 };
 
