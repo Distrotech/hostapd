@@ -229,6 +229,12 @@ struct wpa_global {
 	int cross_connection;
 	struct wpa_freq_range *p2p_disallow_freq;
 	unsigned int num_p2p_disallow_freq;
+
+#ifdef CONFIG_WIFI_DISPLAY
+	int wifi_display;
+#define MAX_WFD_SUBELEMS 10
+	struct wpabuf *wfd_subelem[MAX_WFD_SUBELEMS];
+#endif /* CONFIG_WIFI_DISPLAY */
 };
 
 

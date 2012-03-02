@@ -210,6 +210,11 @@ struct p2p_peer_info {
 	size_t wps_sec_dev_type_list_len;
 
 	struct wpabuf *wps_vendor_ext[P2P_MAX_WPS_VENDOR_EXT];
+
+	/**
+	 * wfd_subelems - Wi-Fi Display subelements from WFD IE(s)
+	 */
+	struct wpabuf *wfd_subelems;
 };
 
 enum p2p_prov_disc_status {
@@ -1645,5 +1650,19 @@ int p2p_in_progress(struct p2p_data *p2p);
 int p2p_other_scan_completed(struct p2p_data *p2p);
 
 const char * p2p_wps_method_text(enum p2p_wps_method method);
+
+int p2p_set_wfd_ie_beacon(struct p2p_data *p2p, struct wpabuf *ie);
+int p2p_set_wfd_ie_probe_req(struct p2p_data *p2p, struct wpabuf *ie);
+int p2p_set_wfd_ie_probe_resp(struct p2p_data *p2p, struct wpabuf *ie);
+int p2p_set_wfd_ie_assoc_req(struct p2p_data *p2p, struct wpabuf *ie);
+int p2p_set_wfd_ie_invitation(struct p2p_data *p2p, struct wpabuf *ie);
+int p2p_set_wfd_ie_prov_disc_req(struct p2p_data *p2p, struct wpabuf *ie);
+int p2p_set_wfd_ie_prov_disc_resp(struct p2p_data *p2p, struct wpabuf *ie);
+int p2p_set_wfd_ie_go_neg(struct p2p_data *p2p, struct wpabuf *ie);
+int p2p_set_wfd_dev_info(struct p2p_data *p2p, const struct wpabuf *elem);
+int p2p_set_wfd_assoc_bssid(struct p2p_data *p2p, const struct wpabuf *elem);
+int p2p_set_wfd_coupled_sink_info(struct p2p_data *p2p,
+				  const struct wpabuf *elem);
+struct wpabuf * wifi_display_encaps(struct wpabuf *subelems);
 
 #endif /* P2P_H */
