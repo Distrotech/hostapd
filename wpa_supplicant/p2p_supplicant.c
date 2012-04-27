@@ -976,6 +976,20 @@ void wpas_go_neg_completed(void *ctx, struct p2p_go_neg_results *res)
 	wpa_msg(wpa_s, MSG_INFO, P2P_EVENT_GO_NEG_SUCCESS);
 	wpas_notify_p2p_go_neg_completed(wpa_s, res);
 
+	if (res->role_go && wpa_s->p2p_persistent_id >= 0) {
+		struct wpa_ssid *ssid;
+		ssid = wpa_config_get_network(wpa_s->conf,
+					      wpa_s->p2p_persistent_id);
+		if (ssid && ssid->disabled == 2 &&
+		    ssid->mode == WPAS_MODE_P2P_GO && ssid->passphrase) {
+			size_t len = os_strlen(ssid->passphrase);
+			wpa_printf(MSG_DEBUG, "P2P: Override passphrase based "
+				   "on requested persistent group");
+			os_memcpy(res->passphrase, ssid->passphrase, len);
+			res->passphrase[len] = '\0';
+		}
+	}
+
 	if (wpa_s->create_p2p_iface) {
 		struct wpa_supplicant *group_wpa_s =
 			wpas_p2p_init_group_interface(wpa_s, res->role_go);
@@ -2554,7 +2568,8 @@ static int wpas_p2p_start_go_neg(struct wpa_supplicant *wpa_s,
 				 const u8 *peer_addr,
 				 enum p2p_wps_method wps_method,
 				 int go_intent, const u8 *own_interface_addr,
-				 unsigned int force_freq, int persistent_group)
+				 unsigned int force_freq, int persistent_group,
+				 struct wpa_ssid *ssid)
 {
 	if (persistent_group && wpa_s->conf->persistent_reconnect)
 		persistent_group = 2;
@@ -2567,7 +2582,8 @@ static int wpas_p2p_start_go_neg(struct wpa_supplicant *wpa_s,
 
 	return p2p_connect(wpa_s->global->p2p, peer_addr, wps_method,
 			   go_intent, own_interface_addr, force_freq,
-			   persistent_group);
+			   persistent_group, ssid ? ssid->ssid : NULL,
+			   ssid ? ssid->ssid_len : 0);
 }
 
 
@@ -2575,7 +2591,8 @@ static int wpas_p2p_auth_go_neg(struct wpa_supplicant *wpa_s,
 				const u8 *peer_addr,
 				enum p2p_wps_method wps_method,
 				int go_intent, const u8 *own_interface_addr,
-				unsigned int force_freq, int persistent_group)
+				unsigned int force_freq, int persistent_group,
+				struct wpa_ssid *ssid)
 {
 	if (persistent_group && wpa_s->conf->persistent_reconnect)
 		persistent_group = 2;
@@ -2585,7 +2602,8 @@ static int wpas_p2p_auth_go_neg(struct wpa_supplicant *wpa_s,
 
 	return p2p_authorize(wpa_s->global->p2p, peer_addr, wps_method,
 			     go_intent, own_interface_addr, force_freq,
-			     persistent_group);
+			     persistent_group, ssid ? ssid->ssid : NULL,
+			     ssid ? ssid->ssid_len : 0);
 }
 
 
@@ -2698,7 +2716,8 @@ static void wpas_p2p_scan_res_join(struct wpa_supplicant *wpa_s,
 					 wpa_s->p2p_pin, wpa_s->p2p_wps_method,
 					 wpa_s->p2p_persistent_group, 0, 0, 0,
 					 wpa_s->p2p_go_intent,
-					 wpa_s->p2p_connect_freq);
+					 wpa_s->p2p_connect_freq,
+					 wpa_s->p2p_persistent_id);
 			return;
 		}
 
@@ -2958,6 +2977,8 @@ static int wpas_p2p_join_start(struct wpa_supplicant *wpa_s)
  *	initiating Group Owner negotiation
  * @go_intent: GO Intent or -1 to use default
  * @freq: Frequency for the group or 0 for auto-selection
+ * @persistent_id: Persistent group credentials to use for forcing GO
+ *	parameters or -1 to generate new values (SSID/passphrase)
  * Returns: 0 or new PIN (if pin was %NULL) on success, -1 on unspecified
  *	failure, -2 on failure due to channel not currently available,
  *	-3 if forced channel is not supported
@@ -2965,16 +2986,24 @@ static int wpas_p2p_join_start(struct wpa_supplicant *wpa_s)
 int wpas_p2p_connect(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
 		     const char *pin, enum p2p_wps_method wps_method,
 		     int persistent_group, int auto_join, int join, int auth,
-		     int go_intent, int freq)
+		     int go_intent, int freq, int persistent_id)
 {
 	int force_freq = 0, oper_freq = 0;
 	u8 bssid[ETH_ALEN];
 	int ret = 0;
 	enum wpa_driver_if_type iftype;
 	const u8 *if_addr;
+	struct wpa_ssid *ssid = NULL;
 
 	if (wpa_s->global->p2p_disabled || wpa_s->global->p2p == NULL)
 		return -1;
+
+	if (persistent_id >= 0) {
+		ssid = wpa_config_get_network(wpa_s->conf, persistent_id);
+		if (ssid == NULL || ssid->disabled != 2 ||
+		    ssid->mode != WPAS_MODE_P2P_GO)
+			return -1;
+	}
 
 	if (go_intent < 0)
 		go_intent = wpa_s->conf->p2p_go_intent;
@@ -2984,6 +3013,7 @@ int wpas_p2p_connect(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
 
 	wpa_s->p2p_wps_method = wps_method;
 	wpa_s->p2p_persistent_group = !!persistent_group;
+	wpa_s->p2p_persistent_id = persistent_id;
 	wpa_s->p2p_go_intent = go_intent;
 	wpa_s->p2p_connect_freq = freq;
 
@@ -3095,14 +3125,15 @@ int wpas_p2p_connect(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
 	if (auth) {
 		if (wpas_p2p_auth_go_neg(wpa_s, peer_addr, wps_method,
 					 go_intent, if_addr,
-					 force_freq, persistent_group) < 0)
+					 force_freq, persistent_group, ssid) <
+		    0)
 			return -1;
 		return ret;
 	}
 
 	if (wpas_p2p_start_go_neg(wpa_s, peer_addr, wps_method,
 				  go_intent, if_addr, force_freq,
-				  persistent_group) < 0) {
+				  persistent_group, ssid) < 0) {
 		if (wpa_s->create_p2p_iface)
 			wpas_p2p_remove_pending_group_interface(wpa_s);
 		return -1;
