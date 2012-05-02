@@ -1887,7 +1887,7 @@ static void p2p_reply_probe(struct p2p_data *p2p, const u8 *addr,
 	}
 
 	if (msg.device_id &&
-	    os_memcmp(msg.device_id, p2p->cfg->dev_addr, ETH_ALEN != 0)) {
+	    os_memcmp(msg.device_id, p2p->cfg->dev_addr, ETH_ALEN) != 0) {
 		/* Device ID did not match */
 		p2p_parse_free(&msg);
 		return;
