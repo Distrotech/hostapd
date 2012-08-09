@@ -238,13 +238,18 @@ wpa_supplicant_start_sched_scan(struct wpa_supplicant *wpa_s,
 				int interval)
 {
 	int ret;
-
+#ifndef ANDROID_P2P
 	wpa_supplicant_notify_scanning(wpa_s, 1);
+#endif
 	ret = wpa_drv_sched_scan(wpa_s, params, interval * 1000);
 	if (ret)
 		wpa_supplicant_notify_scanning(wpa_s, 0);
-	else
+	else {
 		wpa_s->sched_scanning = 1;
+#ifdef ANDROID_P2P
+		wpa_supplicant_notify_scanning(wpa_s, 1);
+#endif
+	}
 
 	return ret;
 }
@@ -527,12 +532,14 @@ static void wpa_supplicant_scan(void *eloop_ctx, void *timeout_ctx)
 		wpa_s->prev_scan_wildcard = 0;
 		wpa_supplicant_assoc_try(wpa_s, ssid);
 		return;
+#ifndef ANDROID
 	} else if (wpa_s->conf->ap_scan == 2) {
 		/*
 		 * User-initiated scan request in ap_scan == 2; scan with
 		 * wildcard SSID.
 		 */
 		ssid = NULL;
+#endif
 	} else {
 		struct wpa_ssid *start = ssid, *tssid;
 		int freqs_set = 0;
@@ -660,6 +667,7 @@ static void wpa_supplicant_scan(void *eloop_ctx, void *timeout_ctx)
  */
 void wpa_supplicant_req_scan(struct wpa_supplicant *wpa_s, int sec, int usec)
 {
+#ifndef ANDROID
 	/* If there's at least one network that should be specifically scanned
 	 * then don't cancel the scan and reschedule.  Some drivers do
 	 * background scanning which generates frequent scan results, and that
@@ -681,7 +689,7 @@ void wpa_supplicant_req_scan(struct wpa_supplicant *wpa_s, int sec, int usec)
 			return;
 		}
 	}
-
+#endif
 	wpa_dbg(wpa_s, MSG_DEBUG, "Setting scan request: %d sec %d usec",
 		sec, usec);
 	eloop_cancel_timeout(wpa_supplicant_scan, wpa_s, NULL);
@@ -779,9 +787,11 @@ int wpa_supplicant_req_sched_scan(struct wpa_supplicant *wpa_s)
 					sizeof(struct wpa_driver_scan_filter));
 
 	prev_state = wpa_s->wpa_state;
+#ifndef ANDROID_P2P
 	if (wpa_s->wpa_state == WPA_DISCONNECTED ||
 	    wpa_s->wpa_state == WPA_INACTIVE)
 		wpa_supplicant_set_state(wpa_s, WPA_SCANNING);
+#endif
 
 	/* Find the starting point from which to continue scanning */
 	ssid = wpa_s->conf->ssid;
@@ -909,6 +919,9 @@ void wpa_supplicant_cancel_scan(struct wpa_supplicant *wpa_s)
 {
 	wpa_dbg(wpa_s, MSG_DEBUG, "Cancelling scan request");
 	eloop_cancel_timeout(wpa_supplicant_scan, wpa_s, NULL);
+#ifdef ANDROID
+	wpa_supplicant_notify_scanning(wpa_s, 0);
+#endif
 }
 
 
@@ -933,7 +946,12 @@ void wpa_supplicant_notify_scanning(struct wpa_supplicant *wpa_s,
 				    int scanning)
 {
 	if (wpa_s->scanning != scanning) {
+#ifdef ANDROID_P2P
+		if(!wpa_s->sched_scanning)
+			wpa_s->scanning = scanning;
+#else
 		wpa_s->scanning = scanning;
+#endif
 		wpas_notify_scanning(wpa_s);
 	}
 }
