@@ -2311,6 +2311,11 @@ void p2p_flush(struct p2p_data *p2p)
 {
 	struct p2p_device *dev, *prev;
 	p2p_clear_timeout(p2p);
+#ifdef ANDROID_P2P
+	if (p2p->state == P2P_SEARCH)
+		wpa_msg(p2p->cfg->msg_ctx, MSG_INFO,
+						P2P_EVENT_FIND_STOPPED);
+#endif
 	p2p_set_state(p2p, P2P_IDLE);
 	p2p->start_after_scan = P2P_AFTER_SCAN_NOTHING;
 	p2p->go_neg_peer = NULL;
