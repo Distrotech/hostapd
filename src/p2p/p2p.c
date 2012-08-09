@@ -2744,12 +2744,19 @@ static void p2p_go_neg_req_cb(struct p2p_data *p2p, int success)
 	}
 
 	if (success) {
+#ifndef ANDROID_P2P
 		dev->go_neg_req_sent++;
+#endif
 		if (dev->flags & P2P_DEV_USER_REJECTED) {
 			p2p_set_state(p2p, P2P_IDLE);
 			return;
 		}
 	}
+#ifdef ANDROID_P2P
+	else {
+		dev->go_neg_req_sent--;
+	}
+#endif
 
 	if (!success &&
 	    (dev->info.dev_capab & P2P_DEV_CAPAB_CLIENT_DISCOVERABILITY) &&
