@@ -304,7 +304,15 @@ static int android_pno_start(struct i802_bss *bss,
 			     struct wpa_driver_scan_params *params);
 static int android_pno_stop(struct i802_bss *bss);
 #endif /* ANDROID */
+#ifdef ANDROID_P2P
+int wpa_driver_set_p2p_noa(void *priv, u8 count, int start, int duration);
+int wpa_driver_get_p2p_noa(void *priv, u8 *buf, size_t len);
+int wpa_driver_set_p2p_ps(void *priv, int legacy_ps, int opp_ps, int ctwindow);
+int wpa_driver_set_ap_wps_p2p_ie(void *priv, const struct wpabuf *beacon,
+				  const struct wpabuf *proberesp,
+				  const struct wpabuf *assocresp);
 
+#endif
 #ifdef HOSTAPD
 static void add_ifidx(struct wpa_driver_nl80211_data *drv, int ifidx);
 static void del_ifidx(struct wpa_driver_nl80211_data *drv, int ifidx);
@@ -326,6 +334,10 @@ static inline int have_ifidx(struct wpa_driver_nl80211_data *drv, int ifidx)
 	return 0;
 }
 #endif /* HOSTAPD */
+#ifdef ANDROID
+extern int wpa_driver_nl80211_driver_cmd(void *priv, char *cmd, char *buf,
+					 size_t buf_len);
+#endif
 
 static int i802_set_freq(void *priv, struct hostapd_freq_params *freq);
 static int nl80211_disable_11b_rates(struct wpa_driver_nl80211_data *drv,
@@ -441,8 +453,7 @@ static int send_and_recv_msgs_global(struct nl80211_global *global,
 			     valid_data);
 }
 
-
-static int send_and_recv_msgs(struct wpa_driver_nl80211_data *drv,
+int send_and_recv_msgs(struct wpa_driver_nl80211_data *drv,
 			      struct nl_msg *msg,
 			      int (*valid_handler)(struct nl_msg *, void *),
 			      void *valid_data)
@@ -2175,8 +2186,12 @@ static int process_global_event(struct nl_msg *msg, void *arg)
 	dl_list_for_each(drv, &global->interfaces,
 			 struct wpa_driver_nl80211_data, list) {
 		if (ifidx == -1 || ifidx == drv->ifindex ||
-		    have_ifidx(drv, ifidx))
+		    have_ifidx(drv, ifidx)) {
 			do_process_drv_event(drv, gnlh->cmd, tb);
+#ifdef ANDROID_P2P
+			break;
+#endif
+		}
 	}
 
 	return NL_SKIP;
@@ -2477,8 +2492,9 @@ broken_combination:
 				WPA_DRIVER_FLAGS_TDLS_EXTERNAL_SETUP;
 		}
 	}
-
+#ifndef ANDROID_P2P
 	if (tb[NL80211_ATTR_DEVICE_AP_SME])
+#endif
 		info->device_ap_sme = 1;
 
 	if (tb[NL80211_ATTR_FEATURE_FLAGS]) {
@@ -6130,6 +6146,7 @@ static int nl80211_setup_ap(struct i802_bss *bss)
 		if (nl80211_mgmt_subscribe_ap(bss))
 			return -1;
 
+#ifndef ANDROID_P2P
 	if (drv->device_ap_sme && !drv->use_monitor)
 		if (nl80211_mgmt_subscribe_ap_dev_sme(bss))
 			return -1;
@@ -6137,6 +6154,14 @@ static int nl80211_setup_ap(struct i802_bss *bss)
 	if (!drv->device_ap_sme && drv->use_monitor &&
 	    nl80211_create_monitor_interface(drv) &&
 	    !drv->device_ap_sme)
+#else
+	if (drv->device_ap_sme)
+		if (nl80211_mgmt_subscribe_ap_dev_sme(bss))
+			return -1;
+
+	if (drv->use_monitor &&
+	    nl80211_create_monitor_interface(drv))
+#endif
 		return -1;
 
 	if (drv->device_ap_sme &&
@@ -6208,8 +6233,11 @@ static int wpa_driver_nl80211_hapd_send_eapol(
 	u8 *pos;
 	int res;
 	int qos = flags & WPA_STA_WMM;
-
+#ifndef ANDROID_P2P
 	if (drv->device_ap_sme || !drv->use_monitor)
+#else
+	if (drv->device_ap_sme && !drv->use_monitor)
+#endif
 		return nl80211_send_eapol_data(bss, addr, data, data_len);
 
 	len = sizeof(*hdr) + (qos ? 2 : 0) + sizeof(rfc1042_header) + 2 +
@@ -7940,8 +7968,10 @@ static int nl80211_send_frame_cmd(struct i802_bss *bss,
 
 	NLA_PUT_U32(msg, NL80211_ATTR_IFINDEX, bss->ifindex);
 	NLA_PUT_U32(msg, NL80211_ATTR_WIPHY_FREQ, freq);
+#ifndef ANDROID_P2P
 	if (wait)
 		NLA_PUT_U32(msg, NL80211_ATTR_DURATION, wait);
+#endif
 	if (offchanok && (drv->capa.flags & WPA_DRIVER_FLAGS_OFFCHANNEL_TX))
 		NLA_PUT_FLAG(msg, NL80211_ATTR_OFFCHANNEL_TX_OK);
 	if (no_cck)
@@ -8363,14 +8393,23 @@ static int wpa_driver_nl80211_shared_freq(void *priv)
 			 struct wpa_driver_nl80211_data, list) {
 		if (drv == driver ||
 		    os_strcmp(drv->phyname, driver->phyname) != 0 ||
+#ifdef ANDROID_P2P
+		    (!driver->associated && !is_ap_interface(driver->nlmode)))
+#else
 		    !driver->associated)
+#endif
 			continue;
 
 		wpa_printf(MSG_DEBUG, "nl80211: Found a match for PHY %s - %s "
 			   MACSTR,
 			   driver->phyname, driver->first_bss.ifname,
 			   MAC2STR(driver->first_bss.addr));
-		freq = nl80211_get_assoc_freq(driver);
+#ifdef ANDROID_P2P
+		if(is_ap_interface(driver->nlmode))
+			freq = driver->first_bss.freq;
+		else
+#endif
+			freq = nl80211_get_assoc_freq(driver);
 		wpa_printf(MSG_DEBUG, "nl80211: Shared freq for PHY %s: %d",
 			   drv->phyname, freq);
 	}
@@ -8408,6 +8447,15 @@ static int nl80211_set_param(void *priv, const char *param)
 		drv->capa.flags |= WPA_DRIVER_FLAGS_P2P_CONCURRENT;
 		drv->capa.flags |= WPA_DRIVER_FLAGS_P2P_MGMT_AND_NON_P2P;
 	}
+#ifdef ANDROID_P2P
+	if(os_strstr(param, "use_multi_chan_concurrent=1")) {
+		struct i802_bss *bss = priv;
+		struct wpa_driver_nl80211_data *drv = bss->drv;
+		wpa_printf(MSG_DEBUG, "nl80211: Use Multi channel "
+			   "concurrency");
+		drv->capa.flags |= WPA_DRIVER_FLAGS_MULTI_CHANNEL_CONCURRENT;
+	}
+#endif
 #endif /* CONFIG_P2P */
 
 	return 0;
@@ -8671,7 +8719,11 @@ static int nl80211_set_p2p_powersave(void *priv, int legacy_ps, int opp_ps,
 		   "opp_ps=%d ctwindow=%d)", legacy_ps, opp_ps, ctwindow);
 
 	if (opp_ps != -1 || ctwindow != -1)
+#ifdef ANDROID_P2P
+		wpa_driver_set_p2p_ps(priv, legacy_ps, opp_ps, ctwindow);
+#else
 		return -1; /* Not yet supported */
+#endif
 
 	if (legacy_ps == -1)
 		return 0;
@@ -8979,4 +9031,12 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.send_tdls_mgmt = nl80211_send_tdls_mgmt,
 	.tdls_oper = nl80211_tdls_oper,
 #endif /* CONFIG_TDLS */
+#ifdef ANDROID_P2P
+	.set_noa = wpa_driver_set_p2p_noa,
+	.get_noa = wpa_driver_get_p2p_noa,
+	.set_ap_wps_ie = wpa_driver_set_ap_wps_p2p_ie,
+#endif
+#ifdef ANDROID
+	.driver_cmd = wpa_driver_nl80211_driver_cmd,
+#endif
 };
