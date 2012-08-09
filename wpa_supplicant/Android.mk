@@ -121,9 +121,16 @@ endif
 OBJS += src/utils/$(CONFIG_ELOOP).c
 OBJS_c += src/utils/$(CONFIG_ELOOP).c
 
+ifdef CONFIG_ELOOP_POLL
+L_CFLAGS += -DCONFIG_ELOOP_POLL
+endif
 
 ifdef CONFIG_EAPOL_TEST
 L_CFLAGS += -Werror -DEAPOL_TEST
+endif
+
+ifdef CONFIG_HT_OVERRIDES
+L_CFLAGS += -DCONFIG_HT_OVERRIDES
 endif
 
 ifndef CONFIG_BACKEND
