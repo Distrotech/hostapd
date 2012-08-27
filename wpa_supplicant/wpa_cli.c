@@ -2696,6 +2696,20 @@ static int wpa_cli_cmd_anqp_get(struct wpa_ctrl *ctrl, int argc, char *argv[])
 	cmd[sizeof(cmd) - 1] = '\0';
 	return wpa_ctrl_command(ctrl, cmd);
 }
+
+
+static int wpa_cli_cmd_gas_request(struct wpa_ctrl *ctrl, int argc,
+				   char *argv[])
+{
+	return wpa_cli_cmd(ctrl, "GAS_REQUEST", 2, argc, argv);
+}
+
+
+static int wpa_cli_cmd_gas_response_get(struct wpa_ctrl *ctrl, int argc,
+					char *argv[])
+{
+	return wpa_cli_cmd(ctrl, "GAS_RESPONSE_GET", 2, argc, argv);
+}
 #endif /* CONFIG_INTERWORKING */
 
 
@@ -3215,6 +3229,12 @@ static struct wpa_cli_cmd wpa_cli_commands[] = {
 	  "<BSSID> = connect using Interworking credentials" },
 	{ "anqp_get", wpa_cli_cmd_anqp_get, cli_cmd_flag_none,
 	  "<addr> <info id>[,<info id>]... = request ANQP information" },
+	{ "gas_request", wpa_cli_cmd_gas_request,
+	  cli_cmd_flag_none,
+	  "<addr> <AdvProtoID> [QueryReq] = GAS request" },
+	{ "gas_response_get", wpa_cli_cmd_gas_response_get,
+	  cli_cmd_flag_none,
+	  "<addr> <dialog token> [start,len] = Fetch last GAS response" },
 #endif /* CONFIG_INTERWORKING */
 #ifdef CONFIG_HS20
 	{ "hs20_anqp_get", wpa_cli_cmd_hs20_anqp_get, cli_cmd_flag_none,
