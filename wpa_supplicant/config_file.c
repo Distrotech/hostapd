@@ -828,6 +828,9 @@ static void wpa_config_write_global(FILE *f, struct wpa_config *config)
 #endif /* CONFIG_INTERWORKING */
 	if (config->pbc_in_m1)
 		fprintf(f, "pbc_in_m1=%u\n", config->pbc_in_m1);
+	if (config->auto_interworking)
+		fprintf(f, "auto_interworking=%d\n",
+			config->auto_interworking);
 }
 
 #endif /* CONFIG_NO_CONFIG_WRITE */
