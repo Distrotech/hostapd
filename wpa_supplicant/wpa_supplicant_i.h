@@ -239,6 +239,11 @@ enum offchannel_send_action_result {
 	OFFCHANNEL_SEND_ACTION_FAILED /* Frame was not sent due to a failure */
 };
 
+struct wpa_ssid_value {
+	u8 ssid[32];
+	size_t ssid_len;
+};
+
 /**
  * struct wpa_supplicant - Internal data for wpa_supplicant interface
  *
@@ -291,6 +296,11 @@ struct wpa_supplicant {
 
 	u8 *bssid_filter;
 	size_t bssid_filter_count;
+
+	u8 *disallow_aps_bssid;
+	size_t disallow_aps_bssid_count;
+	struct wpa_ssid_value *disallow_aps_ssid;
+	size_t disallow_aps_ssid_count;
 
 	enum { WPA_SETBAND_AUTO, WPA_SETBAND_5G, WPA_SETBAND_2G } setband;
 
@@ -637,6 +647,9 @@ void wpa_supplicant_update_config(struct wpa_supplicant *wpa_s);
 void wpa_supplicant_clear_status(struct wpa_supplicant *wpa_s);
 void wpas_connection_failed(struct wpa_supplicant *wpa_s, const u8 *bssid);
 int wpas_driver_bss_selection(struct wpa_supplicant *wpa_s);
+int disallowed_bssid(struct wpa_supplicant *wpa_s, const u8 *bssid);
+int disallowed_ssid(struct wpa_supplicant *wpa_s, const u8 *ssid,
+		    size_t ssid_len);
 
 /**
  * wpa_supplicant_ctrl_iface_ctrl_rsp_handle - Handle a control response

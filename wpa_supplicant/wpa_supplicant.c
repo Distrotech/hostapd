@@ -450,6 +450,11 @@ static void wpa_supplicant_cleanup(struct wpa_supplicant *wpa_s)
 	os_free(wpa_s->bssid_filter);
 	wpa_s->bssid_filter = NULL;
 
+	os_free(wpa_s->disallow_aps_bssid);
+	wpa_s->disallow_aps_bssid = NULL;
+	os_free(wpa_s->disallow_aps_ssid);
+	wpa_s->disallow_aps_ssid = NULL;
+
 	wpabuf_free(wpa_s->last_gas_resp);
 }
 
@@ -3317,6 +3322,42 @@ int wpas_network_disabled(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid)
 		if (len == 16 && (drv_enc & WPA_DRIVER_CAPA_ENC_WEP128))
 			continue;
 		return 1; /* invalid WEP key */
+	}
+
+	return 0;
+}
+
+
+int disallowed_bssid(struct wpa_supplicant *wpa_s, const u8 *bssid)
+{
+	size_t i;
+
+	if (wpa_s->disallow_aps_bssid == NULL)
+		return 0;
+
+	for (i = 0; i < wpa_s->disallow_aps_bssid_count; i++) {
+		if (os_memcmp(wpa_s->disallow_aps_bssid + i * ETH_ALEN,
+			      bssid, ETH_ALEN) == 0)
+			return 1;
+	}
+
+	return 0;
+}
+
+
+int disallowed_ssid(struct wpa_supplicant *wpa_s, const u8 *ssid,
+		    size_t ssid_len)
+{
+	size_t i;
+
+	if (wpa_s->disallow_aps_ssid == NULL || ssid == NULL)
+		return 0;
+
+	for (i = 0; i < wpa_s->disallow_aps_ssid_count; i++) {
+		struct wpa_ssid_value *s = &wpa_s->disallow_aps_ssid[i];
+		if (ssid_len == s->ssid_len &&
+		    os_memcmp(ssid, s->ssid, ssid_len) == 0)
+			return 1;
 	}
 
 	return 0;
