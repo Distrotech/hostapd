@@ -6,8 +6,9 @@ ifndef CFLAGS
 CFLAGS = -MMD -O2 -Wall -g
 endif
 
-export LIBDIR ?= /usr/local/lib/
-export BINDIR ?= /usr/local/sbin/
+export LIBDIR ?= /usr/lib/
+export BINDIR ?= /usr/bin/
+export SBINDIR ?= /usr/sbin/
 PKG_CONFIG ?= pkg-config
 
 CFLAGS += -I../src
@@ -49,10 +50,11 @@ mkconfig:
 	echo CONFIG_DRIVER_HOSTAP=y >> .config
 	echo CONFIG_DRIVER_WEXT=y >> .config
 
-$(DESTDIR)$(BINDIR)/%: %
-	install -D $(<) $(@)
-
-install: $(addprefix $(DESTDIR)$(BINDIR)/,$(BINALL))
+install:
+	install -d $(DESTDIR)/$(BINDIR) $(DESTDIR)/$(SBINDIR)
+	install -D wpa_supplicant $(DESTDIR)/$(SBINDIR)
+	install -D wpa_cli $(DESTDIR)/$(BINDIR)
+	install -D wpa_passphrase $(DESTDIR)/$(BINDIR)
 	$(MAKE) -C ../src install
 
 ifdef CONFIG_FIPS
@@ -1265,7 +1267,7 @@ LIBS += $(DBUS_LIBS)
 
 ifdef CONFIG_READLINE
 OBJS_c += ../src/utils/edit_readline.o
-LIBS_c += -lncurses -lreadline
+LIBS_c += -lncurses -lreadline -ldl
 else
 ifdef CONFIG_WPA_CLI_EDIT
 OBJS_c += ../src/utils/edit.o
