@@ -842,8 +842,11 @@ verify_config:
 	fi
 
 install: all
-	mkdir -p $(DESTDIR)/usr/local/bin
-	for i in $(ALL); do cp -f $$i $(DESTDIR)/usr/local/bin/$$i; done
+	mkdir -p $(DESTDIR)/usr/sbin $(DESTDIR)/usr/bin $(DESTDIR)/usr/share/man/man1 $(DESTDIR)/usr/share/man/man8
+	cp -f hostapd $(DESTDIR)/usr/sbin/
+	cp -f hostapd_cli $(DESTDIR)/usr/bin/
+	cp -f hostapd_cli.1 $(DESTDIR)/usr/share/man/man1
+	cp -f hostapd.8 $(DESTDIR)/usr/share/man/man8
 
 ../src/drivers/build.hostapd:
 	@if [ -f ../src/drivers/build.wpa_supplicant ]; then \
