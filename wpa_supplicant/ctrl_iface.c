@@ -5969,7 +5969,6 @@ static char * wpas_global_ctrl_iface_redir_p2p(struct wpa_global *global,
 #ifdef ANDROID_P2P
 		"LIST_NETWORKS",
 		"SAVE_CONFIG",
-		"STATUS",
 #endif
 		"P2P_FIND",
 		"P2P_STOP_FIND",
