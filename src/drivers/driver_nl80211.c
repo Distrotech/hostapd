@@ -343,6 +343,10 @@ static inline int have_ifidx(struct wpa_driver_nl80211_data *drv, int ifidx)
 	return 0;
 }
 #endif /* HOSTAPD */
+#ifdef ANDROID
+extern int wpa_driver_nl80211_driver_cmd(void *priv, char *cmd, char *buf,
+					 size_t buf_len);
+#endif
 
 static int wpa_driver_nl80211_set_freq(struct i802_bss *bss,
 				       struct hostapd_freq_params *freq);
@@ -10777,4 +10781,7 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.update_ft_ies = wpa_driver_nl80211_update_ft_ies,
 	.get_mac_addr = wpa_driver_nl80211_get_macaddr,
 	.get_survey = wpa_driver_nl80211_get_survey,
+#ifdef ANDROID
+	.driver_cmd = wpa_driver_nl80211_driver_cmd,
+#endif
 };
