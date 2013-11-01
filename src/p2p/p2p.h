@@ -1771,6 +1771,14 @@ int p2p_set_pref_chan(struct p2p_data *p2p, unsigned int num_pref_chan,
  */
 int p2p_in_progress(struct p2p_data *p2p);
 
+#ifdef ANDROID_P2P
+/**
+ * p2p_search_in_progress - Check whether a P2P SEARCH is in progress
+ * @p2p: P2P module context from p2p_init()
+ * Returns: 0 if P2P module is idle or 1 if an operation is in progress
+ */
+int p2p_search_in_progress(struct p2p_data *p2p);
+
 /**
  * p2p_other_scan_completed - Notify completion of non-P2P scan
  * @p2p: P2P module context from p2p_init()
