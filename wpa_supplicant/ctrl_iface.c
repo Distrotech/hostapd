@@ -178,7 +178,7 @@ static int set_disallow_aps(struct wpa_supplicant *wpa_s, char *val)
 	struct wpa_ssid *c;
 
 	/*
-	 * disallow_list ::= <ssid_spec> | <bssid_spec> | <disallow_list> | ‚Äú‚Äù
+	 * disallow_list ::= <ssid_spec> | <bssid_spec> | <disallow_list> | ìî
 	 * SSID_SPEC ::= ssid <SSID_HEX>
 	 * BSSID_SPEC ::= bssid <BSSID_HEX>
 	 */
