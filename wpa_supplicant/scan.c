@@ -566,7 +566,13 @@ static void wpa_supplicant_scan(void *eloop_ctx, void *timeout_ctx)
 		wpas_p2p_continue_after_scan(wpa_s);
 		return;
 	}
-
+#ifdef ANDROID
+	if (wpa_s->scanning) {
+		/* If we are already in scanning state, we shall ignore this new scan request*/
+		wpa_dbg(wpa_s, MSG_DEBUG, "Skip scan - already scanning");
+		return;
+	}
+#endif
 	if (!wpa_supplicant_enabled_networks(wpa_s) &&
 	    wpa_s->scan_req == NORMAL_SCAN_REQ) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "No enabled networks - do not scan");
