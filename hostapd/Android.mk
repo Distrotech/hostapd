@@ -98,6 +98,7 @@ NEED_RC4=y
 NEED_AES=y
 NEED_MD5=y
 NEED_SHA1=y
+NEED_SHA256=y
 
 OBJS += src/drivers/drivers.c
 L_CFLAGS += -DHOSTAPD
