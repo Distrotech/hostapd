@@ -3336,11 +3336,20 @@ static int wpa_driver_nl80211_capa(struct wpa_driver_nl80211_data *drv)
 	drv->poll_command_supported = info.poll_command_supported;
 	drv->data_tx_status = info.data_tx_status;
 
+#ifdef ANDROID_P2P
+	if(drv->capa.flags & WPA_DRIVER_FLAGS_OFFCHANNEL_TX) {
+		/* Driver is new enough to support monitorless mode*/
+		wpa_printf(MSG_DEBUG, "nl80211: Driver is new "
+			  "enough to support monitor-less mode");
+		drv->use_monitor = 0;
+	}
+#else
 	/*
 	 * If poll command and tx status are supported, mac80211 is new enough
 	 * to have everything we need to not need monitor interfaces.
 	 */
 	drv->use_monitor = !info.poll_command_supported || !info.data_tx_status;
+#endif
 
 	if (drv->device_ap_sme && drv->use_monitor) {
 		/*
