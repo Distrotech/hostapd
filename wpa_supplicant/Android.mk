@@ -761,11 +761,11 @@ OBJS += src/ap/eap_user_db.c
 ifdef CONFIG_IEEE80211N
 OBJS += src/ap/ieee802_11_ht.c
 endif
-ifdef CONFIG_CTRL_IFACE
-OBJS += src/ap/ctrl_iface_ap.c
-endif
 ifdef CONFIG_WNM
 OBJS += src/ap/wnm_ap.c
+endif
+ifdef CONFIG_CTRL_IFACE
+OBJS += src/ap/ctrl_iface_ap.c
 endif
 
 L_CFLAGS += -DEAP_SERVER -DEAP_SERVER_IDENTITY
