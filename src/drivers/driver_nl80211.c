@@ -363,7 +363,15 @@ static int android_pno_start(struct i802_bss *bss,
 			     struct wpa_driver_scan_params *params);
 static int android_pno_stop(struct i802_bss *bss);
 #endif /* ANDROID */
+#ifdef ANDROID_P2P
+int wpa_driver_set_p2p_noa(void *priv, u8 count, int start, int duration);
+int wpa_driver_get_p2p_noa(void *priv, u8 *buf, size_t len);
+int wpa_driver_set_p2p_ps(void *priv, int legacy_ps, int opp_ps, int ctwindow);
+int wpa_driver_set_ap_wps_p2p_ie(void *priv, const struct wpabuf *beacon,
+				  const struct wpabuf *proberesp,
+				  const struct wpabuf *assocresp);
 
+#endif
 #ifdef HOSTAPD
 static void add_ifidx(struct wpa_driver_nl80211_data *drv, int ifidx);
 static void del_ifidx(struct wpa_driver_nl80211_data *drv, int ifidx);
@@ -634,7 +642,10 @@ static int send_and_recv_msgs_global(struct nl80211_global *global,
 }
 
 
-static int send_and_recv_msgs(struct wpa_driver_nl80211_data *drv,
+#ifndef ANDROID
+static
+#endif
+int send_and_recv_msgs(struct wpa_driver_nl80211_data *drv,
 			      struct nl_msg *msg,
 			      int (*valid_handler)(struct nl_msg *, void *),
 			      void *valid_data)
@@ -10614,7 +10625,11 @@ static int nl80211_set_p2p_powersave(void *priv, int legacy_ps, int opp_ps,
 		   "opp_ps=%d ctwindow=%d)", legacy_ps, opp_ps, ctwindow);
 
 	if (opp_ps != -1 || ctwindow != -1)
+#ifdef ANDROID_P2P
+		wpa_driver_set_p2p_ps(priv, legacy_ps, opp_ps, ctwindow);
+#else
 		return -1; /* Not yet supported */
+#endif
 
 	if (legacy_ps == -1)
 		return 0;
@@ -11319,6 +11334,11 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.get_mac_addr = wpa_driver_nl80211_get_macaddr,
 	.get_survey = wpa_driver_nl80211_get_survey,
 	.status = wpa_driver_nl80211_status,
+#ifdef ANDROID_P2P
+	.set_noa = wpa_driver_set_p2p_noa,
+	.get_noa = wpa_driver_get_p2p_noa,
+	.set_ap_wps_ie = wpa_driver_set_ap_wps_p2p_ie,
+#endif
 #ifdef ANDROID
 	.driver_cmd = wpa_driver_nl80211_driver_cmd,
 #endif
