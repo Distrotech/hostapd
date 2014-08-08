@@ -26,6 +26,7 @@ wpa_supplicant_mesh_deinit(struct wpa_supplicant *wpa_s)
 	if (wpa_s->mesh_rsn)
 		os_free(wpa_s->mesh_rsn);
 	wpa_s->mesh_rsn = NULL;
+	wpa_s->current_ssid = NULL;
 	/* TODO: leave mesh (stop beacon). This will happen on link down
 	 * anyway, so it's not urgent */
 }
@@ -320,6 +321,7 @@ int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 
 	if (wpa_supplicant_mesh_init(wpa_s, ssid)) {
 		wpa_msg(wpa_s, MSG_ERROR, "failed to init mesh");
+		ret = -1;
 		goto out;
 	}
 
