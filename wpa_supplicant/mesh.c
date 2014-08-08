@@ -218,6 +218,12 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	}
 
 	if (mconf->security != MESH_CONF_SEC_NONE) {
+		if (ssid->passphrase == NULL) {
+			wpa_printf(MSG_ERROR, "mesh: passphrase for SAE is "
+				   "not configured");
+			goto out_free;
+		}
+
 		bss->conf->wpa = ssid->proto;
 		bss->conf->wpa_key_mgmt = ssid->key_mgmt;
 
