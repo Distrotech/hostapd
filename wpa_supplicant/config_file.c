@@ -1190,6 +1190,9 @@ static void wpa_config_write_global(FILE *f, struct wpa_config *config)
 
 	if (config->preassoc_mac_addr)
 		fprintf(f, "preassoc_mac_addr=%d\n", config->preassoc_mac_addr);
+
+	if (config->user_mpm)
+		fprintf(f, "user_mpm=%d\n", config->user_mpm);
 }
 
 #endif /* CONFIG_NO_CONFIG_WRITE */
